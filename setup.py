@@ -9,7 +9,7 @@ def main():
 
     setuptools.setup(
         name             = "AWRS",
-        version          = "2017-06-09T1547Z",
+        version          = "2017.06.09.1547",
         description      = "weather utilities",
         long_description = long_description(),
         url              = "https://github.com/wdbm/AWRS",
