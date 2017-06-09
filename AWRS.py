@@ -40,7 +40,7 @@ except:
     from urllib2 import urlopen
 
 name    = "AWRS"
-version = "2017-06-09T1547Z"
+version = "2017-06-09T1600Z"
 
 def METAR(
     identifier = "EGPF",
