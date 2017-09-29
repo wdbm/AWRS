@@ -40,7 +40,7 @@ except:
     from urllib2 import urlopen
 
 name    = "AWRS"
-version = "2017-09-26T1637Z"
+version = "2017-09-29T1327Z"
 
 def METAR(
     identifier = "EGPF",
@@ -93,8 +93,8 @@ def METAR(
     return report
 
 def TAF(
-    identifier               = "EGPF",
-    URL                      = "https://avwx.rest/api/taf/"
+    identifier = "EGPF",
+    URL        = "https://avwx.rest/api/taf/"
     ):
 
     try:
@@ -123,25 +123,15 @@ def TAF(
     now = datetime.datetime.utcnow()
     for datetimes in report["rain_TAF_datetimes"]:
 
-        # start datetime
-        tmp            = datetime.datetime.strptime(datetimes[0], "%d%H")
-        start_datetime = datetime.datetime(
-                             now.year,
-                             now.month,
-                             tmp.day,
-                             tmp.hour,
-                             tmp.minute
-                         )
+        start_datetime = TAF_datetime_to_datetime_object(
+            datetime_string             = datetimes[0],
+            datetime_for_year_and_month = now
+        )
 
-        # stop datetime
-        tmp            = datetime.datetime.strptime(datetimes[1], "%d%H")
-        stop_datetime  = datetime.datetime(
-                             now.year,
-                             now.month,
-                             tmp.day,
-                             tmp.hour,
-                             tmp.minute
-                         )
+        stop_datetime = TAF_datetime_to_datetime_object(
+            datetime_string             = datetimes[1],
+            datetime_for_year_and_month = now
+        )
 
         report["rain_datetimes"].append((start_datetime, stop_datetime))
 
@@ -158,6 +148,35 @@ def TAF(
         )
 
     return report
+
+def TAF_datetime_to_datetime_object(
+    datetime_string             = None,
+    datetime_for_year_and_month = None  # e.g. datetime.datetime.utcnow()
+    ):
+
+    """
+    Preprocess datetimes to change hours from 24 to 00, incrementing the date
+    as necessary.
+    """
+
+    if datetime_string.endswith("24"):
+
+        datetime_string = datetime_string[:-2] + "00"
+
+        tmp = datetime.datetime.strptime(datetime_string, "%d%H") +\
+              datetime.timedelta(days = 1)
+
+    else:
+
+        tmp = datetime.datetime.strptime(datetime_string, "%d%H")
+
+    return datetime.datetime(
+        datetime_for_year_and_month.year,
+        datetime_for_year_and_month.month,
+        tmp.day,
+        tmp.hour,
+        tmp.minute
+    )
 
 def rain_datetimes(
     identifier = "EGPF"
