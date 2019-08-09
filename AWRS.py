@@ -39,137 +39,107 @@ try:
 except:
     from urllib2 import urlopen
 
-name    = "AWRS"
-version = "2017-09-29T1327Z"
+name    = 'AWRS'
+version = '2019-08-09T1757Z'
 
 def METAR(
-    identifier = "EGPF",
-    URL        = "https://avwx.rest/api/metar/"
+    identifier = 'EGPF',
+    URL        = 'https://avwx.rest/api/metar/'
     ):
-
     try:
-
         file_URL                 = urlopen(URL + identifier)
-        data_string              = file_URL.read().decode("utf-8")
+        data_string              = file_URL.read().decode('utf-8')
         data_JSON                = json.loads(data_string)
         report                   = {}
-        report["raw"]            = data_JSON
-        report["METAR"]          = data_JSON["Raw-Report"]
-
+        report['raw']            = data_JSON
+        report['METAR']          = data_JSON['raw']
     except:
-
         return None
-
-    report["dewpoint"]       = int(data_JSON["Dewpoint"])
-    report["QNH"]            = data_JSON["Altimeter"]
-    report["temperature"]    = int(data_JSON["Temperature"])
-    report["visibility"]     = int(data_JSON["Visibility"])
-    report["wind_direction"] = int(data_JSON["Wind-Direction"])
-    report["wind_speed"]     = int(data_JSON["Wind-Speed"])
-
+    report['dewpoint']       = int(data_JSON['dewpoint']['value'])
+    report['QNH']            = data_JSON['altimeter']['value']
+    report['temperature']    = int(data_JSON['temperature']['value'])
+    report['visibility']     = int(data_JSON['visibility']['value'])
+    try:
+        report['wind_direction'] = int(data_JSON['wind_direction']['value'])
+    except:
+        report['wind_direction'] = None
+    report['wind_speed']     = int(data_JSON['wind_speed']['value'])
     # datetime
-
     now                      = datetime.datetime.utcnow()
     tmp                      = datetime.datetime.strptime(
-                                   data_JSON["Time"],
-                                   "%d%H%MZ"
+                                   data_JSON['time']['repr'],
+                                   '%d%H%MZ'
                                )
-    report["datetime"]       = datetime.datetime(
+    report['datetime']       = datetime.datetime(
                                    now.year,
                                    now.month,
                                    tmp.day,
                                    tmp.hour,
                                    tmp.minute
                                )
-    report["time_UTC"]       = report["datetime"].strftime("%Y-%m-%dT%H%MZ")
-
+    report['time_UTC']       = report['datetime'].strftime('%Y-%m-%dT%H%MZ')
     # rain
-
-    if "RA" in report["METAR"]:
-        report["rain"] = True
+    if 'RA' in report['METAR']:
+        report['rain'] = True
     else:
-        report["rain"] = False
-
+        report['rain'] = False
     return report
 
 def TAF(
-    identifier = "EGPF",
-    URL        = "https://avwx.rest/api/taf/"
+    identifier = 'EGPF',
+    URL        = 'https://avwx.rest/api/taf/'
     ):
-
     try:
-
         file_URL                 = urlopen(URL + identifier)
-        data_string              = file_URL.read().decode("utf-8")
+        data_string              = file_URL.read().decode('utf-8')
         data_JSON                = json.loads(data_string)
         report                   = {}
-        report["raw"]            = data_JSON
-        report["TAF"]            = data_JSON["Raw-Report"]
-
+        report['raw']            = data_JSON
+        report['TAF']            = data_JSON['raw']
     except:
-
         return None
-
     # list of tuples of start and stop TAF datetimes for rain predictions
-
-    report["rain_TAF_datetimes"] = [
-        (forecast["Start-Time"], forecast["End-Time"])\
-        for forecast in data_JSON["Forecast"] if "RA" in forecast["Raw-Line"]
+    report['rain_TAF_datetimes'] = [
+        (forecast['start_time']['repr'], forecast['end_time']['repr'])\
+        for forecast in data_JSON['forecast'] if 'RA' in forecast['raw']
     ]
-
     # list of tuples of start and stop datetimes for rain predictions
-
-    report["rain_datetimes"] = []
+    report['rain_datetimes'] = []
     now = datetime.datetime.utcnow()
-    for datetimes in report["rain_TAF_datetimes"]:
-
+    for datetimes in report['rain_TAF_datetimes']:
         start_datetime = TAF_datetime_to_datetime_object(
             datetime_string             = datetimes[0],
             datetime_for_year_and_month = now
         )
-
         stop_datetime = TAF_datetime_to_datetime_object(
             datetime_string             = datetimes[1],
             datetime_for_year_and_month = now
         )
-
-        report["rain_datetimes"].append((start_datetime, stop_datetime))
-
+        report['rain_datetimes'].append((start_datetime, stop_datetime))
     # list of human-readable time windows in style %Y-%m-%dT%H%MZ
-
-    report["rain_human_readable_datetimes"] = []
-
-    for datetimes in report["rain_datetimes"]:
-
-        report["rain_human_readable_datetimes"].append(
-            datetimes[0].strftime("%Y-%m-%dT%H%MZ") +\
-            "--"                                    +\
-            datetimes[1].strftime("%Y-%m-%dT%H%MZ")
+    report['rain_human_readable_datetimes'] = []
+    for datetimes in report['rain_datetimes']:
+        report['rain_human_readable_datetimes'].append(
+            datetimes[0].strftime('%Y-%m-%dT%H%MZ') +\
+            '--'                                    +\
+            datetimes[1].strftime('%Y-%m-%dT%H%MZ')
         )
-
     return report
 
 def TAF_datetime_to_datetime_object(
     datetime_string             = None,
     datetime_for_year_and_month = None  # e.g. datetime.datetime.utcnow()
     ):
-
     """
     Preprocess datetimes to change hours from 24 to 00, incrementing the date
     as necessary.
     """
-
-    if datetime_string.endswith("24"):
-
-        datetime_string = datetime_string[:-2] + "00"
-
-        tmp = datetime.datetime.strptime(datetime_string, "%d%H") +\
+    if datetime_string.endswith('24'):
+        datetime_string = datetime_string[:-2] + '00'
+        tmp = datetime.datetime.strptime(datetime_string, '%d%H') +\
               datetime.timedelta(days = 1)
-
     else:
-
-        tmp = datetime.datetime.strptime(datetime_string, "%d%H")
-
+        tmp = datetime.datetime.strptime(datetime_string, '%d%H')
     return datetime.datetime(
         datetime_for_year_and_month.year,
         datetime_for_year_and_month.month,
@@ -179,44 +149,31 @@ def TAF_datetime_to_datetime_object(
     )
 
 def rain_datetimes(
-    identifier = "EGPF"
+    identifier = 'EGPF'
     ):
-
     report = TAF(identifier = identifier)
-
-    return report["rain_datetimes"]
+    return report['rain_datetimes']
 
 def rain_human_readable_datetimes(
-    identifier    = "EGPF",
+    identifier    = 'EGPF',
     return_list   = True,
     return_string = False
     ):
-
     report = TAF(identifier = identifier)
-
     if return_list:
-
-        return report["rain_human_readable_datetimes"]
-
+        return report['rain_human_readable_datetimes']
     if return_string:
-
-        return ", ".join(report["rain_human_readable_datetimes"])
+        return ', '.join(report['rain_human_readable_datetimes'])
 
 def rain_soon(
-    identifier = "EGPF",
+    identifier = 'EGPF',
     minutes    = 30
     ):
-
     test_time = datetime.datetime.utcnow() +\
                 datetime.timedelta(minutes = minutes)
     report    = TAF(identifier = identifier)
-
-    if report["rain_datetimes"]:
-
-        for datetimes in report["rain_datetimes"]:
-
+    if report['rain_datetimes']:
+        for datetimes in report['rain_datetimes']:
             if datetimes[0] <= test_time <= datetimes[1]:
-
                 return True
-
     return False
