@@ -40,44 +40,45 @@ except:
     from urllib2 import urlopen
 
 name    = 'AWRS'
-version = '2019-08-09T1757Z'
+version = '2019-08-14T1152Z'
 
 def METAR(
     identifier = 'EGPF',
     URL        = 'https://avwx.rest/api/metar/'
     ):
     try:
-        file_URL                 = urlopen(URL + identifier)
-        data_string              = file_URL.read().decode('utf-8')
-        data_JSON                = json.loads(data_string)
-        report                   = {}
-        report['raw']            = data_JSON
-        report['METAR']          = data_JSON['raw']
+        file_URL          = urlopen(URL + identifier)
+        data_string       = file_URL.read().decode('utf-8')
+        data_JSON         = json.loads(data_string)
+        report            = {}
+        report['raw']     = data_JSON
+        report['METAR']   = data_JSON['raw']
     except:
         return None
-    report['dewpoint']       = int(data_JSON['dewpoint']['value'])
-    report['QNH']            = data_JSON['altimeter']['value']
-    report['temperature']    = int(data_JSON['temperature']['value'])
-    report['visibility']     = int(data_JSON['visibility']['value'])
+    report['identifier']  = identifier
+    report['dewpoint']    = int(data_JSON['dewpoint']['value'])
+    report['QNH']         = data_JSON['altimeter']['value']
+    report['temperature'] = int(data_JSON['temperature']['value'])
+    report['visibility']  = int(data_JSON['visibility']['value'])
     try:
         report['wind_direction'] = int(data_JSON['wind_direction']['value'])
     except:
         report['wind_direction'] = None
-    report['wind_speed']     = int(data_JSON['wind_speed']['value'])
+    report['wind_speed']  = int(data_JSON['wind_speed']['value'])
     # datetime
-    now                      = datetime.datetime.utcnow()
-    tmp                      = datetime.datetime.strptime(
+    now                   = datetime.datetime.utcnow()
+    tmp                   = datetime.datetime.strptime(
                                    data_JSON['time']['repr'],
                                    '%d%H%MZ'
-                               )
-    report['datetime']       = datetime.datetime(
-                                   now.year,
-                                   now.month,
-                                   tmp.day,
-                                   tmp.hour,
-                                   tmp.minute
-                               )
-    report['time_UTC']       = report['datetime'].strftime('%Y-%m-%dT%H%MZ')
+                            )
+    report['datetime']    = datetime.datetime(
+                                now.year,
+                                now.month,
+                                tmp.day,
+                                tmp.hour,
+                                tmp.minute
+                            )
+    report['time_UTC']    = report['datetime'].strftime('%Y-%m-%dT%H%MZ')
     # rain
     if 'RA' in report['METAR']:
         report['rain'] = True
@@ -90,14 +91,15 @@ def TAF(
     URL        = 'https://avwx.rest/api/taf/'
     ):
     try:
-        file_URL                 = urlopen(URL + identifier)
-        data_string              = file_URL.read().decode('utf-8')
-        data_JSON                = json.loads(data_string)
-        report                   = {}
-        report['raw']            = data_JSON
-        report['TAF']            = data_JSON['raw']
+        file_URL          = urlopen(URL + identifier)
+        data_string       = file_URL.read().decode('utf-8')
+        data_JSON         = json.loads(data_string)
+        report            = {}
+        report['raw']     = data_JSON
+        report['TAF']     = data_JSON['raw']
     except:
         return None
+    report['identifier']         = identifier
     # list of tuples of start and stop TAF datetimes for rain predictions
     report['rain_TAF_datetimes'] = [
         (forecast['start_time']['repr'], forecast['end_time']['repr'])\

@@ -56,4 +56,4 @@ while True:
         table_name      = "TAF",
         filepath        = "weather.db"
     )
-    time.sleep(1800)
+    time.sleep(3600)
